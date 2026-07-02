@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+<style>
+  :root {
+    --bg: #0d0d1a;
+    --card-bg: #14142b;
+    --display-bg: #0a0a18;
+    --btn-num: #1e1e3a;
+    --btn-num-hover: #2a2a50;
+    --btn-num-active: #333360;
+    --btn-op: #e94560;
+    --btn-op-hover: #ff5e7a;
+    --btn-op-active: #c2304d;
+    --btn-eq: #0c8eb8;
+    --btn-eq-hover: #00b4d8;
+    --btn-eq-active: #007a9e;
+    --btn-fn: #2d2d55;
+    --btn-fn-hover: #3d3d6e;
+    --btn-fn-active: #4a4a7a;
+    --text-primary: #e8e8f0;
+    --text-display: #ffffff;
+    --text-muted: #7070a0;
+    --text-history: #555580;
+    --border: #2a2a50;
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+    --radius: 16px;
+    --transition: 120ms ease;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 50% 30%, rgba(233,69,96,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 70%, rgba(12,142,184,0.05) 0%, transparent 50%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+  }
+
+  .calculator {
+    width: 100%;
+    min-width: 320px;
+    max-width: 400px;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow), 0 0 0 1px var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── Display ── */
+  .display {
+    background: var(--display-bg);
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+  }
+
+  .display__expr {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    word-break: break-all;
+    text-align: right;
+    line-height: 1.4;
+    min-height: 1.5em;
+    width: 100%;
+    transition: color 150ms ease;
+  }
+
+  .display__result {
+    font-size: 2.6rem;
+    font-weight: 300;
+    color: var(--text-display);
+    letter-spacing: 0.02em;
+    text-align: right;
+    width: 100%;
+    word-break: break-all;
+    line-height: 1.2;
+    transition: font-size 200ms ease, color 200ms ease;
+  }
+
+  .display__result.error { color: var(--btn-op); font-size: 2rem; }
+
+  /* ── Keypad ── */
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    padding: 0;
+  }
+
+  .btn {
+    background: var(--btn-num);
+    color: var(--text-primary);
+    border: none;
+    font-size: 1.35rem;
+    font-family: inherit;
+    padding: 18px 4px;
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition), transform 80ms ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:hover { background: var(--btn-num-hover); }
+  .btn:active { background: var(--btn-num-active); transform: scale(0.96); }
+
+  .btn--fn { background: var(--btn-fn); color: var(--text-muted); font-weight: 500; }
+  .btn--fn:hover { background: var(--btn-fn-hover); }
+  .btn--fn:active { background: var(--btn-fn-active); }
+
+  .btn--op { background: var(--btn-op); color: #fff; font-size: 1.5rem; font-weight: 500; }
+  .btn--op:hover { background: var(--btn-op-hover); }
+  .btn--op:active { background: var(--btn-op-active); }
+
+  .btn--eq { background: var(--btn-eq); color: #fff; font-size: 1.5rem; font-weight: 600; }
+  .btn--eq:hover { background: var(--btn-eq-hover); }
+  .btn--eq:active { background: var(--btn-eq-active); }
+
+  /* Ripple */
+  .btn .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    transform: scale(0);
+    animation: ripple 0.5s ease-out;
+    pointer-events: none;
+  }
+  @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+
+  /* ── History ── */
+  .history {
+    border-top: 1px solid var(--border);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 300ms ease, padding 300ms ease;
+    background: var(--display-bg);
+    padding: 0 16px;
+  }
+  .history.open { max-height: 180px; padding: 10px 16px; }
+
+  .history__list { list-style: none; font-size: 0.85rem; color: var(--text-history); }
+  .history__list li {
+    padding: 4px 0;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .history__list li:last-child { border-bottom: none; }
+  .history__expr { opacity: 0.7; }
+  .history__val { font-weight: 600; color: var(--text-muted); }
+
+  .history-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px;
+    background: var(--display-bg);
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    width: 100%;
+    font-family: inherit;
+    transition: color 150ms;
+  }
+  .history-toggle:hover { color: var(--text-primary); }
+  .history-toggle svg { width: 14px; height: 14px; transition: transform 300ms; }
+  .history-toggle.open svg { transform: rotate(180deg); }
+
+  /* ── Footer badge ── */
+  .badge {
+    text-align: center;
+    padding: 8px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.4;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 360px) {
+    .display { padding: 18px 14px 14px; min-height: 100px; }
+    .display__result { font-size: 2.2rem; }
+    .btn { font-size: 1.2rem; padding: 14px 2px; }
+    .btn--op, .btn--eq { font-size: 1.3rem; }
+  }
+
+  @media (min-width: 401px) {
+    .calculator { border-radius: 20px; }
+    .display { padding: 28px 24px 22px; }
+    .btn { padding: 20px 4px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="calculator" role="application" aria-label="Calculator">
+  <!-- Display -->
+  <div class="display">
+    <div class="display__expr" aria-live="polite"></div>
+    <div class="display__result" aria-live="assertive">0</div>
+  </div>
+
+  <!-- Keypad -->
+  <div class="keypad" id="keypad">
+    <button class="btn btn--fn" data-key="C">C</button>
+    <button class="btn btn--fn" data-key="Backspace">⌫</button>
+    <button class="btn btn--fn" data-key="%">%</button>
+    <button class="btn btn--op" data-key="/">÷</button>
+
+    <button class="btn" data-key="7">7</button>
+    <button class="btn" data-key="8">8</button>
+    <button class="btn" data-key="9">9</button>
+    <button class="btn btn--op" data-key="*">×</button>
+
+    <button class="btn" data-key="4">4</button>
+    <button class="btn" data-key="5">5</button>
+    <button class="btn" data-key="6">6</button>
+    <button class="btn btn--op" data-key="-">−</button>
+
+    <button class="btn" data-key="1">1</button>
+    <button class="btn" data-key="2">2</button>
+    <button class="btn" data-key="3">3</button>
+    <button class="btn btn--op" data-key="+">+</button>
+
+    <button class="btn btn--fn" data-key="negate">±</button>
+    <button class="btn" data-key="0">0</button>
+    <button class="btn" data-key=".">.</button>
+    <button class="btn btn--eq" data-key="Enter">=</button>
+  </div>
+
+  <!-- History toggle -->
+  <button class="history-toggle" id="historyToggle" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    History
+  </button>
+
+  <!-- History panel -->
+  <div class="history" id="historyPanel">
+    <ul class="history__list" id="historyList"></ul>
+  </div>
+
+  <div class="badge">Model Showdown &middot; 2026</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ── DOM refs ──
+  const elExpr   = document.querySelector('.display__expr');
+  const elResult = document.querySelector('.display__result');
+  const elHist   = document.getElementById('historyList');
+  const elHPanel = document.getElementById('historyPanel');
+  const elHToggle= document.getElementById('historyToggle');
+  const elKeypad = document.getElementById('keypad');
+
+  // ── State ──
+  let display    = '0';       // raw display string (source of truth)
+  let justEval   = false;     // true right after '='
+  let lastResult = null;      // stored result for chaining
+  let history    = [];        // {expr, result}
+
+  // ── Operator / display maps ──
+  const KEY_MAP = { '/':'÷', '*':'×' };
+  const DISPLAY_OPS = new Set(['+','-','×','÷']);
+
+  function isOpChar(c) { return c === '+' || c === '-' || c === '×' || c === '÷'; }
+
+  // ── Update display ──
+  function render() {
+    // Expression line: show expression without trailing operator,
+    // or empty if result was just evaluated
+    let exprText = display;
+    if (justEval) {
+      exprText = '';
+    } else if (exprText !== 'Error' && exprText !== '0') {
+      // Add spaces around operators for readability
+      exprText = exprText.replace(/([+\-×÷])/g, ' $1 ');
+    } else {
+      exprText = exprText === '0' ? '' : exprText;
+    }
+    elExpr.textContent = exprText;
+
+    // Result line
+    if (display === 'Error') {
+      elResult.textContent = 'Error';
+      elResult.className = 'display__result error';
+      return;
+    }
+
+    elResult.className = 'display__result';
+
+    if (justEval) {
+      elResult.textContent = formatNum(lastResult);
+    } else if (display === '0') {
+      elResult.textContent = '0';
+    } else {
+      // Live preview: try to evaluate current expression
+      const preview = tryEval(display);
+      if (preview === 'Error') {
+        elResult.textContent = 'Error';
+        elResult.className = 'display__result error';
+      } else if (preview !== null) {
+        elResult.textContent = formatNum(preview);
+      } else {
+        elResult.textContent = formatNum(parseFloat(display) || 0);
+      }
+    }
+  }
+
+  // ── Format a number ──
+  function formatNum(num) {
+    if (num === null || num === undefined || !isFinite(num)) return 'Error';
+    // Avoid floating-point noise
+    let s = parseFloat(num.toPrecision(12)).toString();
+    // Cap at 10 chars (including minus sign & decimal)
+    if (s.length > 10) {
+      // Try rounding to integer
+      let r = Math.round(num);
+      if (r.toString().length <= 10) return r.toString();
+      // Try fixed decimals
+      for (let d = 9; d >= 1; d--) {
+        let t = parseFloat(num.toFixed(d)).toString();
+        if (t.length <= 10) return t;
+      }
+      return 'Error';
+    }
+    return s;
+  }
+
+  // ── Tokenize display string ──
+  function tokenize(str) {
+    const tokens = [];
+    let i = 0;
+    while (i < str.length) {
+      // Unary minus at start or after operator
+      if (str[i] === '-' && (tokens.length === 0 || tokens[tokens.length-1].type === 'op')) {
+        let num = '-';
+        i++;
+        while (i < str.length && (isDigit(str[i]) || str[i] === '.')) {
+          num += str[i]; i++;
+        }
+        if (num === '-') return tokens; // trailing minus, ignore
+        tokens.push({ type:'num', value:parseFloat(num) });
+      } else if (isDigit(str[i]) || str[i] === '.') {
+        let num = '';
+        while (i < str.length && (isDigit(str[i]) || str[i] === '.')) {
+          num += str[i]; i++;
+        }
+        tokens.push({ type:'num', value:parseFloat(num) });
+      } else if (isOpChar(str[i])) {
+        tokens.push({ type:'op', value:str[i] });
+        i++;
+      } else {
+        i++; // skip unknown
+      }
+    }
+    return tokens;
+  }
+
+  function isDigit(c) { return c >= '0' && c <= '9'; }
+
+  // ── Evaluate expression with precedence ──
+  function evaluate(str) {
+    if (!str || str === '0') return 0;
+    if (str === 'Error') return 'Error';
+
+    const tokens = tokenize(str);
+    if (tokens.length === 0) return 0;
+
+    // Drop trailing operator
+    if (tokens[tokens.length-1].type === 'op') tokens.pop();
+    if (tokens.length === 0) return 0;
+    if (tokens.length === 1) return tokens[0].value;
+
+    // Pass 1: × and ÷ (left to right)
+    let work = tokens.slice();
+    let i = 1;
+    while (i < work.length) {
+      if (work[i].type === 'op' && (work[i].value === '×' || work[i].value === '÷')) {
+        const a = work[i-1].value;
+        const b = work[i+1].value;
+        let val;
+        if (work[i].value === '×') {
+          val = a * b;
+        } else {
+          if (b === 0) return 'Error';
+          val = a / b;
+        }
+        work.splice(i-1, 3, { type:'num', value:val });
+        // i stays; next element now at i
+      } else {
+        i += 2;
+      }
+    }
+
+    // Pass 2: + and -
+    let result = work[0].value;
+    for (let j = 1; j < work.length; j += 2) {
+      if (work[j].value === '+') result += work[j+1].value;
+      else if (work[j].value === '-') result -= work[j+1].value;
+    }
+    return result;
+  }
+
+  // Try to evaluate (returns null if expression is incomplete / unparseable)
+  function tryEval(str) {
+    if (!str || str === '0' || str === 'Error') return null;
+    const tokens = tokenize(str);
+    if (tokens.length <= 1) return null;
+    // If ends with operator, strip it for preview
+    if (tokens[tokens.length-1].type === 'op') tokens.pop();
+    if (tokens.length <= 1) return null;
+    // Rebuild mini expression and evaluate
+    let mini = '';
+    for (const t of tokens) mini += t.type === 'num' ? t.value : t.value;
+    return evaluate(mini);
+  }
+
+  // ── Press a digit ──
+  function pressDigit(d) {
+    if (display === 'Error') {
+      display = d; justEval = false; render(); return;
+    }
+    if (justEval) {
+      // Start fresh after evaluation
+      display = d;
+      justEval = false;
+      lastResult = null;
+      render();
+      return;
+    }
+    if (display === '0') {
+      display = d;
+      render();
+      return;
+    }
+    if (display.length >= 20) return; // reasonable cap on input
+    display += d;
+    render();
+  }
+
+  // ── Press decimal ──
+  function pressDecimal() {
+    if (display === 'Error') {
+      display = '0.'; justEval = false; render(); return;
+    }
+    if (justEval) {
+      display = '0.';
+      justEval = false;
+      lastResult = null;
+      render();
+      return;
+    }
+    // Find the current number segment (after last operator)
+    let lastOpIdx = -1;
+    for (let i = display.length - 1; i >= 0; i--) {
+      if (isOpChar(display[i])) { lastOpIdx = i; break; }
+    }
+    const currentNum = display.slice(lastOpIdx + 1);
+    if (currentNum.includes('.')) return; // already has decimal
+    display += '.';
+    render();
+  }
+
+  // ── Press operator ──
+  function pressOp(op) {
+    if (display === 'Error') return;
+
+    if (justEval && lastResult !== null) {
+      // Chain from result
+      display = formatNum(lastResult) + op;
+      justEval = false;
+      render();
+      return;
+    }
+
+    const lastChar = display[display.length - 1];
+
+    // Replace trailing operator
+    if (isOpChar(lastChar)) {
+      display = display.slice(0, -1) + op;
+      render();
+      return;
+    }
+
+    // Handle leading unary minus
+    if (op === '-' && display === '0') {
+      display = '-';
+      render();
+      return;
+    }
+
+    display += op;
+    render();
+  }
+
+  // ── Press equals ──
+  function pressEquals() {
+    if (display === 'Error') {
+      display = '0'; justEval = false; lastResult = null; render(); return;
+    }
+
+    const exprForHistory = display;
+    const result = evaluate(display);
+
+    if (result === 'Error') {
+      history.push({ expr: exprForHistory, result: 'Error' });
+      display = 'Error';
+      justEval = false;
+      lastResult = null;
+      renderHistory();
+      render();
+      return;
+    }
+
+    lastResult = result;
+    display = formatNum(result);
+    justEval = true;
+
+    history.push({ expr: exprForHistory, result: formatNum(result) });
+    renderHistory();
+    render();
+  }
+
+  // ── Clear ──
+  function pressClear() {
+    display = '0'; justEval = false; lastResult = null; render();
+  }
+
+  // ── Backspace / Delete ──
+  function pressBackspace() {
+    if (display === 'Error') { pressClear(); return; }
+    if (justEval)        { pressClear(); return; }
+    if (display.length <= 1) { display = '0'; render(); return; }
+    display = display.slice(0, -1);
+    // If we just deleted an operator leaving a trailing minus at start, reset
+    if (display === '-') { display = '0'; }
+    render();
+  }
+
+  // ── Percent ──
+  function pressPercent() {
+    if (display === 'Error') return;
+    if (justEval && lastResult !== null) {
+      lastResult = lastResult / 100;
+      display = formatNum(lastResult);
+      render();
+      return;
+    }
+    // Find current number segment and divide by 100
+    let lastOpIdx = -1;
+    for (let i = display.length - 1; i >= 0; i--) {
+      if (isOpChar(display[i])) { lastOpIdx = i; break; }
+    }
+    let currentNum = display.slice(lastOpIdx + 1);
+    if (currentNum === '' || currentNum === '-') return;
+    let val = parseFloat(currentNum) / 100;
+    display = display.slice(0, lastOpIdx + 1) + val.toString();
+    render();
+  }
+
+  // ── Negate (±) ──
+  function pressNegate() {
+    if (display === 'Error') return;
+    if (justEval && lastResult !== null) {
+      lastResult = -lastResult;
+      display = formatNum(lastResult);
+      render();
+      return;
+    }
+    // Find current number segment and toggle sign
+    let lastOpIdx = -1;
+    for (let i = display.length - 1; i >= 0; i--) {
+      if (isOpChar(display[i])) { lastOpIdx = i; break; }
+    }
+    let before = display.slice(0, lastOpIdx + 1);
+    let currentNum = display.slice(lastOpIdx + 1);
+    if (currentNum === '' || currentNum === '0') return;
+    if (currentNum.startsWith('-')) {
+      display = before + currentNum.slice(1);
+    } else {
+      display = before + '-' + currentNum;
+    }
+    render();
+  }
+
+  // ── History ──
+  function renderHistory() {
+    if (history.length === 0) { elHist.innerHTML = ''; return; }
+    const recent = history.slice(-10);
+    elHist.innerHTML = recent.map(h =>
+      `<li><span class="history__expr">${escHtml(h.expr)}</span><span class="history__val">${escHtml(h.result)}</span></li>`
+    ).join('');
+  }
+
+  function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  // ── Ripple effect ──
+  function addRipple(e, btn) {
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+    ripple.style.top  = (e.clientY - rect.top  - size/2) + 'px';
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+  }
+
+  // ── Button click handler ──
+  elKeypad.addEventListener('click', function(e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const key = btn.dataset.key;
+    if (!key) return;
+
+    addRipple(e, btn);
+    dispatchKey(key);
+  });
+
+  // ── Keyboard handler ──
+  document.addEventListener('keydown', function(e) {
+    // Don't capture if user is in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+
+    let key = e.key;
+
+    // Map keyboard to internal key
+    if (key === 'Escape')      { e.preventDefault(); dispatchKey('C'); return; }
+    if (key === 'Backspace')   { e.preventDefault(); dispatchKey('Backspace'); return; }
+    if (key === 'Enter' || key === '=') { e.preventDefault(); dispatchKey('Enter'); return; }
+    if (key === '*' || key === 'x' || key === 'X') { e.preventDefault(); dispatchKey('*'); return; }
+    if (key === '/')           { e.preventDefault(); dispatchKey('/'); return; }
+    if (key === '%')           { e.preventDefault(); dispatchKey('%'); return; }
+    if (key >= '0' && key <= '9') { e.preventDefault(); dispatchKey(key); return; }
+    if (key === '.')           { e.preventDefault(); dispatchKey('.'); return; }
+    if (key === '+' || key === '-') { e.preventDefault(); dispatchKey(key); return; }
+
+    // Highlight the matching button briefly
+    const btn = document.querySelector(`.btn[data-key="${CSS.escape(key)}"]`);
+    if (btn) btn.classList.add('btn--active');
+    setTimeout(() => { if (btn) btn.classList.remove('btn--active'); }, 100);
+  });
+
+  // ── Dispatch ──
+  function dispatchKey(key) {
+    switch (key) {
+      case 'C': pressClear(); break;
+      case 'Backspace': pressBackspace(); break;
+      case 'Enter': pressEquals(); break;
+      case '+': case '-': case '*': case '/':
+        pressOp(KEY_MAP[key] || key);
+        break;
+      case '%': pressPercent(); break;
+      case 'negate': pressNegate(); break;
+      default:
+        if (key >= '0' && key <= '9') pressDigit(key);
+        else if (key === '.') pressDecimal();
+    }
+  }
+
+  // ── History toggle ──
+  elHToggle.addEventListener('click', function() {
+    const open = elHPanel.classList.toggle('open');
+    elHToggle.classList.toggle('open', open);
+    elHToggle.setAttribute('aria-expanded', open);
+  });
+
+  // ── Initial render ──
+  render();
+})();
+</script>
+
+</body>
+</html>
