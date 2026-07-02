@@ -286,7 +286,6 @@
 
   // ── Operator / display maps ──
   const KEY_MAP = { '/':'÷', '*':'×' };
-  const DISPLAY_OPS = new Set(['+','-','×','÷']);
 
   function isOpChar(c) { return c === '+' || c === '-' || c === '×' || c === '÷'; }
 
@@ -459,7 +458,7 @@
       render();
       return;
     }
-    if (display.length >= 20) return; // reasonable cap on input
+    if (display.length >= 40) return; // cap on input expression length
     display += d;
     render();
   }
@@ -662,10 +661,7 @@
     if (key === '.')           { e.preventDefault(); dispatchKey('.'); return; }
     if (key === '+' || key === '-') { e.preventDefault(); dispatchKey(key); return; }
 
-    // Highlight the matching button briefly
-    const btn = document.querySelector(`.btn[data-key="${CSS.escape(key)}"]`);
-    if (btn) btn.classList.add('btn--active');
-    setTimeout(() => { if (btn) btn.classList.remove('btn--active'); }, 100);
+
   });
 
   // ── Dispatch ──
