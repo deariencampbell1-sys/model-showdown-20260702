@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="A clean, polished calculator with full keyboard support and proper operator precedence.">
+<title>Calculator</title>
+<style>
+/* ============================================================
+   THEME TOKENS — CSS custom properties for both themes
+   ============================================================ */
+:root,
+:root[data-theme="dark"] {
+  --bg-grad-1: #0a0b14;
+  --bg-grad-2: #161a2e;
+  --card-bg: rgba(28, 30, 44, 0.78);
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-shadow: 0 24px 64px rgba(0, 0, 0, 0.55),
+                 0 0 60px rgba(99, 102, 241, 0.08);
+
+  --display-bg: rgba(11, 13, 22, 0.55);
+  --display-text: #f4f5f9;
+  --display-expr: rgba(244, 245, 249, 0.55);
+
+  --tape-bg: rgba(11, 13, 22, 0.4);
+  --tape-expr: rgba(244, 245, 249, 0.4);
+  --tape-eq: rgba(244, 245, 249, 0.78);
+
+  --btn-num-bg: rgba(255, 255, 255, 0.045);
+  --btn-num-bg-hover: rgba(255, 255, 255, 0.09);
+  --btn-num-bg-active: rgba(255, 255, 255, 0.14);
+
+  --btn-op-bg: rgba(129, 140, 248, 0.18);
+  --btn-op-bg-hover: rgba(129, 140, 248, 0.28);
+  --btn-op-bg-active: rgba(129, 140, 248, 0.38);
+
+  --btn-eq-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --btn-eq-bg-hover: linear-gradient(135deg, #7679f5 0%, #9d72f8 100%);
+  --btn-eq-bg-active: linear-gradient(135deg, #5457e3 0%, #7d4ee5 100%);
+
+  --btn-util-bg: rgba(255, 255, 255, 0.06);
+  --btn-util-bg-hover: rgba(255, 255, 255, 0.1);
+  --btn-util-bg-active: rgba(255, 255, 255, 0.16);
+
+  --btn-danger-bg: rgba(244, 63, 94, 0.14);
+  --btn-danger-bg-hover: rgba(244, 63, 94, 0.22);
+  --btn-danger-bg-active: rgba(244, 63, 94, 0.32);
+
+  --text-primary: #f4f5f9;
+  --text-muted: rgba(244, 245, 249, 0.5);
+  --text-op: #c7d2fe;
+  --text-eq: #ffffff;
+  --text-util: #d8dbe6;
+  --text-danger: #fda4af;
+
+  --error: #f87171;
+  --accent: #818cf8;
+  --accent-glow: 0 0 22px rgba(129, 140, 248, 0.18);
+}
+
+:root[data-theme="light"] {
+  --bg-grad-1: #eef0f7;
+  --bg-grad-2: #f7f8fc;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(15, 23, 42, 0.08);
+  --card-shadow: 0 24px 64px rgba(15, 23, 42, 0.08),
+                 0 0 60px rgba(99, 102, 241, 0.04);
+
+  --display-bg: rgba(248, 250, 252, 0.65);
+  --display-text: #0f172a;
+  --display-expr: rgba(15, 23, 42, 0.5);
+
+  --tape-bg: rgba(241, 245, 249, 0.55);
+  --tape-expr: rgba(15, 23, 42, 0.42);
+  --tape-eq: rgba(15, 23, 42, 0.78);
+
+  --btn-num-bg: rgba(15, 23, 42, 0.04);
+  --btn-num-bg-hover: rgba(15, 23, 42, 0.08);
+  --btn-num-bg-active: rgba(15, 23, 42, 0.13);
+
+  --btn-op-bg: rgba(99, 102, 241, 0.12);
+  --btn-op-bg-hover: rgba(99, 102, 241, 0.2);
+  --btn-op-bg-active: rgba(99, 102, 241, 0.28);
+
+  --btn-eq-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --btn-eq-bg-hover: linear-gradient(135deg, #7679f5 0%, #9d72f8 100%);
+  --btn-eq-bg-active: linear-gradient(135deg, #5457e3 0%, #7d4ee5 100%);
+
+  --btn-util-bg: rgba(15, 23, 42, 0.06);
+  --btn-util-bg-hover: rgba(15, 23, 42, 0.1);
+  --btn-util-bg-active: rgba(15, 23, 42, 0.15);
+
+  --btn-danger-bg: rgba(244, 63, 94, 0.1);
+  --btn-danger-bg-hover: rgba(244, 63, 94, 0.18);
+  --btn-danger-bg-active: rgba(244, 63, 94, 0.26);
+
+  --text-primary: #0f172a;
+  --text-muted: rgba(15, 23, 42, 0.5);
+  --text-op: #4f46e5;
+  --text-eq: #ffffff;
+  --text-util: #334155;
+  --text-danger: #be123c;
+
+  --error: #dc2626;
+  --accent: #6366f1;
+  --accent-glow: 0 0 22px rgba(99, 102, 241, 0.06);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system,
+               BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, var(--bg-grad-2) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 100% 100%, var(--bg-grad-2) 0%, transparent 60%),
+    var(--bg-grad-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  user-select: none;
+  -webkit-user-select: none;
+  color: var(--text-primary);
+  transition: background 400ms ease, color 200ms ease;
+}
+
+/* ============================================================
+   CARD
+   ============================================================ */
+.calc {
+  width: 100%;
+  min-width: 320px;
+  max-width: 400px;
+  background: var(--card-bg);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: cardIn 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 4px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.brand::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--accent-glow);
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--card-border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms, color 150ms, transform 100ms;
+}
+.icon-btn:hover  { background: var(--btn-num-bg-hover); color: var(--text-primary); }
+.icon-btn:active { transform: scale(0.92); background: var(--btn-num-bg-active); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn .sun { display: none; }
+.icon-btn .moon { display: block; }
+:root[data-theme="light"] .icon-btn .sun { display: block; }
+:root[data-theme="light"] .icon-btn .moon { display: none; }
+
+/* ============================================================
+   HISTORY TAPE
+   ============================================================ */
+.tape {
+  background: var(--tape-bg);
+  max-height: 96px;
+  overflow-y: auto;
+  padding: 4px 22px 8px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+  scrollbar-width: thin;
+  scrollbar-color: var(--card-border) transparent;
+}
+.tape:empty { display: none; }
+.tape::-webkit-scrollbar { width: 4px; }
+.tape::-webkit-scrollbar-track { background: transparent; }
+.tape::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 2px; }
+
+.tape-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  animation: tapeIn 240ms ease-out;
+}
+.tape-row .expr  { color: var(--tape-expr); }
+.tape-row .eq    { color: var(--tape-eq); font-weight: 600; }
+@keyframes tapeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   DISPLAY
+   ============================================================ */
+.display {
+  background: var(--display-bg);
+  padding: 18px 22px 16px;
+  text-align: right;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  transition: background 200ms;
+}
+
+.expr {
+  font-size: 14px;
+  color: var(--display-expr);
+  line-height: 1.35;
+  font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  min-height: 19px;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  letter-spacing: 0.02em;
+  transition: color 180ms;
+}
+
+.main {
+  font-size: 44px;
+  font-weight: 300;
+  color: var(--display-text);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-family: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  transition: color 180ms;
+}
+
+.main.err { color: var(--error); }
+.main.pulse { animation: pulse 200ms ease-out; }
+.main.shake { animation: shake 320ms ease-out; }
+
+@keyframes pulse {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+/* ============================================================
+   KEYPAD
+   ============================================================ */
+.pad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 14px;
+}
+
+.btn {
+  border: 1px solid transparent;
+  outline: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 0;
+  height: 58px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: var(--btn-num-bg);
+  transition:
+    background 140ms ease,
+    transform 80ms ease-out,
+    box-shadow 140ms ease,
+    color 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover  { background: var(--btn-num-bg-hover); }
+.btn:active { transform: scale(0.95); background: var(--btn-num-bg-active); }
+.btn:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.16) 0%, transparent 65%);
+  opacity: 0;
+  transition: opacity 260ms;
+  pointer-events: none;
+}
+.btn:active::after { opacity: 1; transition-duration: 0ms; }
+
+.btn.op {
+  background: var(--btn-op-bg);
+  color: var(--text-op);
+  font-weight: 600;
+}
+.btn.op:hover  { background: var(--btn-op-bg-hover); }
+.btn.op:active { background: var(--btn-op-bg-active); }
+
+.btn.eq {
+  background: var(--btn-eq-bg);
+  color: var(--text-eq);
+  font-weight: 600;
+  font-size: 24px;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.32);
+}
+.btn.eq:hover  { background: var(--btn-eq-bg-hover); }
+.btn.eq:active { background: var(--btn-eq-bg-active); }
+
+.btn.util {
+  background: var(--btn-util-bg);
+  color: var(--text-util);
+  font-weight: 600;
+}
+.btn.util:hover  { background: var(--btn-util-bg-hover); }
+.btn.util:active { background: var(--btn-util-bg-active); }
+
+.btn.danger {
+  background: var(--btn-danger-bg);
+  color: var(--text-danger);
+  font-weight: 600;
+}
+.btn.danger:hover  { background: var(--btn-danger-bg-hover); }
+.btn.danger:active { background: var(--btn-danger-bg-active); }
+
+.span-2 { grid-column: span 2; }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 360px) {
+  body { padding: 8px; }
+  .calc { border-radius: 18px; }
+  .display { padding: 14px 18px 12px; min-height: 80px; }
+  .main { font-size: 36px; }
+  .expr { font-size: 13px; }
+  .btn { height: 50px; font-size: 17px; border-radius: 12px; }
+  .btn.eq { font-size: 22px; }
+  .pad { gap: 6px; padding: 12px; }
+  .head { padding: 10px 12px 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+</style>
+</head>
+<body data-theme="dark">
+<main class="calc" role="application" aria-label="Calculator">
+  <header class="head">
+    <span class="brand">calc</span>
+    <button class="icon-btn theme-toggle" type="button" aria-label="Toggle theme" title="Toggle theme">
+      <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+  </header>
+
+  <section class="tape" id="tape" aria-label="History"></section>
+
+  <section class="display" id="display">
+    <div class="expr" id="expr" aria-hidden="true"></div>
+    <div class="main" id="main" aria-live="polite" aria-atomic="true">0</div>
+  </section>
+
+  <section class="pad" id="pad" role="group" aria-label="Calculator buttons">
+    <button class="btn util danger" data-action="clear" title="All clear (Esc)">AC</button>
+    <button class="btn util"          data-action="delete" title="Delete (⌫)">⌫</button>
+    <button class="btn util"          data-action="negate" title="Toggle sign">±</button>
+    <button class="btn util"          data-action="percent" title="Percent">%</button>
+
+    <button class="btn"     data-action="digit" data-digit="7">7</button>
+    <button class="btn"     data-action="digit" data-digit="8">8</button>
+    <button class="btn"     data-action="digit" data-digit="9">9</button>
+    <button class="btn op"  data-action="op" data-op="÷">÷</button>
+
+    <button class="btn"     data-action="digit" data-digit="4">4</button>
+    <button class="btn"     data-action="digit" data-digit="5">5</button>
+    <button class="btn"     data-action="digit" data-digit="6">6</button>
+    <button class="btn op"  data-action="op" data-op="×">×</button>
+
+    <button class="btn"     data-action="digit" data-digit="1">1</button>
+    <button class="btn"     data-action="digit" data-digit="2">2</button>
+    <button class="btn"     data-action="digit" data-digit="3">3</button>
+    <button class="btn op"  data-action="op" data-op="−">−</button>
+
+    <button class="btn"     data-action="digit" data-digit="0">0</button>
+    <button class="btn"     data-action="dot">.</button>
+    <button class="btn op"  data-action="op" data-op="+">+</button>
+    <button class="btn eq"  data-action="eq">=</button>
+  </section>
+</main>
+
+<script>
+/* ============================================================
+   Calculator engine
+   --------------------------------------------------------------
+   • Expression-based: we build a string (e.g. "2+3×4") and parse
+     it on '=' with proper precedence (×÷ before +−).
+   • Tokens: numbers (incl. decimals) and ASCII operators.
+     Unicode minus '−' and '×', '÷' are normalized to ASCII
+     before tokenization (parseFloat handles ASCII only).
+   • State: { expr, justEvaluated, errored, lastResult, history }
+   • Display: dim small line = full expression as built,
+              bright big line  = current number being entered
+              (or last result after '=').
+   ============================================================ */
+(function () {
+  'use strict';
+
+  // ---------- DOM ----------
+  const el = {
+    body:      document.body,
+    expr:      document.getElementById('expr'),
+    main:      document.getElementById('main'),
+    tape:      document.getElementById('tape'),
+    pad:       document.getElementById('pad'),
+    themeBtn:  document.querySelector('.theme-toggle'),
+  };
+
+  // ---------- Constants ----------
+  const OPS         = ['+', '−', '×', '÷'];
+  const MAX_DIGITS  = 10;
+  const isOp        = (c) => c === '+' || c === '−' || c === '×' || c === '÷';
+
+  // ---------- State ----------
+  let expr          = '';        // expression being built, e.g. "2+3×"
+  let justEvaluated = false;     // true right after '=' was pressed
+  let errored       = false;     // true when an error is currently shown
+  let lastResult    = null;      // last numeric result for chaining
+  const history     = [];        // [{ expr, result }]
+
+  // ---------- Display helpers ----------
+  function setDisplay(exprText, mainText, isError) {
+    el.expr.textContent = exprText;
+    el.main.textContent = mainText;
+    el.main.classList.toggle('err', !!isError);
+  }
+
+  function pulse(cls) {
+    el.main.classList.remove('pulse', 'shake');
+    // force reflow so the animation re-triggers
+    void el.main.offsetWidth;
+    el.main.classList.add(cls);
+  }
+
+  function refresh() {
+    if (errored) return; // freeze display until clearAll()
+    if (expr === '') {
+      setDisplay('', '0', false);
+      return;
+    }
+    // Find the number to show in the big display:
+    //   1. If the expression ends in a number being edited, show it.
+    //   2. If the expression ends in an operator/dot, show the LAST
+    //      completed number so backspace feels natural.
+    let cur = currentNumber();
+    if (cur === '' || cur === '.') {
+      let end = expr.length;
+      while (end > 0 && (isOp(expr[end - 1]) || expr[end - 1] === '.')) end--;
+      if (end === 0) {
+        setDisplay(expr, '0', false);
+        return;
+      }
+      let start = end;
+      while (start > 0 && !isOp(expr[start - 1])) start--;
+      cur = expr.slice(start, end);
+    }
+    setDisplay(expr, cur === '' ? '0' : cur, false);
+  }
+
+  // ---------- Expression helpers ----------
+  function currentNumber() {
+    // Last number segment in expr, e.g. "5.3" or "−7.2"
+    let end = expr.length;
+    let start = end;
+    while (start > 0 && !isOp(expr[start - 1])) start--;
+    return expr.slice(start, end);
+  }
+
+  function currentNumberStart() {
+    let start = expr.length;
+    while (start > 0 && !isOp(expr[start - 1])) start--;
+    return start;
+  }
+
+  function currentDigitCount() {
+    let n = 0;
+    for (let i = expr.length - 1; i >= 0; i--) {
+      if (isOp(expr[i])) break;
+      if (expr[i] >= '0' && expr[i] <= '9') n++;
+    }
+    return n;
+  }
+
+  function hasDecimalInCurrentNumber() {
+    for (let i = expr.length - 1; i >= 0; i--) {
+      const c = expr[i];
+      if (isOp(c)) return false;
+      if (c === '.') return true;
+    }
+    return false;
+  }
+
+  // ---------- Number formatting ----------
+  // Display up to MAX_DIGITS significant figures. If the integer portion
+  // of the result needs more than MAX_DIGITS digits, it's an overflow → "Error".
+  function format(n) {
+    if (n === null || n === undefined || !isFinite(n)) return 'Error';
+    if (n === 0) return '0';
+
+    let s;
+    if (Number.isInteger(n)) {
+      s = n.toString();
+    } else {
+      // Round to MAX_DIGITS significant digits, then drop trailing zeros via Number().
+      s = parseFloat(n.toPrecision(MAX_DIGITS)).toString();
+    }
+
+    // Overflow guard: integer part has more than MAX_DIGITS digits
+    const intPart = s.replace(/^-/, '').split('.')[0].split('e')[0];
+    if (intPart.length > MAX_DIGITS) return 'Error';
+    return s;
+  }
+
+  // ---------- Actions ----------
+  function clearAll() {
+    expr = '';
+    justEvaluated = false;
+    errored = false;
+    lastResult = null;
+    el.main.classList.remove('err', 'pulse', 'shake');
+    refresh();
+  }
+
+  function inputDigit(d) {
+    if (errored) clearAll();
+
+    if (justEvaluated) {
+      // Start fresh after '=' — next digit begins a new expression
+      expr = '';
+      justEvaluated = false;
+      lastResult = null;
+    }
+
+    const cur = currentNumber();
+
+    // Leading-zero replacement: bare "0" (or "−0") with a non-zero, non-dot digit
+    if (cur === '0' && d !== '0' && d !== '.') {
+      expr = expr.slice(0, -1) + d;
+      refresh();
+      return;
+    }
+    if (cur === '−0' && d !== '0' && d !== '.') {
+      expr = expr.slice(0, -1) + d;
+      refresh();
+      return;
+    }
+    // Bare zero + zero: ignore (prevent "00")
+    if ((cur === '0' || cur === '−0') && d === '0') return;
+
+    // Digit count cap (10)
+    if (currentDigitCount() >= MAX_DIGITS) return;
+
+    expr += d;
+    refresh();
+  }
+
+  function inputDot() {
+    if (errored) clearAll();
+
+    if (justEvaluated) {
+      expr = '';
+      justEvaluated = false;
+      lastResult = null;
+    }
+
+    // If we're at the start or right after an operator, prepend "0"
+    if (expr === '' || isOp(expr[expr.length - 1])) expr += '0';
+
+    // Block multiple decimals in current number
+    if (hasDecimalInCurrentNumber()) return;
+
+    if (currentDigitCount() >= MAX_DIGITS) return;
+
+    expr += '.';
+    refresh();
+  }
+
+  function inputOp(op) {
+    if (errored) clearAll();
+
+    // First: handle chaining from '=' (must come BEFORE the empty-expr guard)
+    if (justEvaluated && lastResult !== null) {
+      expr = format(lastResult);
+      justEvaluated = false;
+      lastResult = null;
+    }
+
+    if (expr === '' && op !== '−') return; // can't start with a binary op (except −)
+    if (expr === '−' && op !== '−')   return; // lone minus, wait for digits
+
+    // Per spec: "operator after operator replaces it" — BUT pressing − after
+    // a non-minus binary op starts a negative operand (don't replace).
+    if (expr.length > 0 && isOp(expr[expr.length - 1])) {
+      if (op === '−' && expr[expr.length - 1] !== '−') {
+        // append − to begin a negative number: "5×" + "−" → "5×−"
+        expr += op;
+      } else {
+        // replace the trailing operator
+        expr = expr.slice(0, -1) + op;
+      }
+      refresh();
+      return;
+    }
+
+    // Drop trailing decimal before attaching op (e.g. "5." + "+" → "5+")
+    if (expr.length > 0 && expr[expr.length - 1] === '.') {
+      expr = expr.slice(0, -1);
+    }
+
+    expr += op;
+    refresh();
+  }
+
+  function inputNegate() {
+    if (errored) clearAll();
+
+    if (justEvaluated && lastResult !== null) {
+      expr = format(lastResult);
+      justEvaluated = false;
+      lastResult = null;
+    }
+
+    if (expr === '' || isOp(expr[expr.length - 1])) return;
+
+    const start = currentNumberStart();
+    const cur = expr.slice(start);
+    if (cur.startsWith('−')) {
+      expr = expr.slice(0, start) + cur.slice(1);
+    } else {
+      expr = expr.slice(0, start) + '−' + cur;
+    }
+    refresh();
+  }
+
+  function inputPercent() {
+    if (errored) clearAll();
+
+    if (justEvaluated && lastResult !== null) {
+      expr = format(lastResult);
+      justEvaluated = false;
+      lastResult = null;
+    }
+
+    if (expr === '' || isOp(expr[expr.length - 1])) return;
+
+    const start = currentNumberStart();
+    const cur = expr.slice(start);
+    const n = parseFloat(cur.replace(/−/g, '-'));
+    if (!isFinite(n)) return;
+    const v = n / 100;
+    expr = expr.slice(0, start) + format(v);
+    refresh();
+  }
+
+  function inputDelete() {
+    if (errored) { clearAll(); return; }
+    if (justEvaluated) { clearAll(); return; }
+    if (expr.length === 0) return;
+    expr = expr.slice(0, -1);
+    refresh();
+  }
+
+  function inputEquals() {
+    if (errored) { clearAll(); return; }
+    if (justEvaluated) return;        // repeated '=' is a no-op
+    if (expr === '' || expr === '−') return;
+
+    const exprStr = expr;
+    const value = evaluate(exprStr);
+
+    if (value === null) {
+      // evaluation error (typically divide-by-zero)
+      addHistory(exprStr, 'Error');
+      setDisplay(exprStr + ' =', 'Error', true);
+      pulse('shake');
+      errored = true;
+      lastResult = null;
+      return;
+    }
+
+    const formatted = format(value);
+    addHistory(exprStr, formatted);
+    setDisplay(exprStr + ' =', formatted, false);
+    pulse('pulse');
+
+    lastResult = value;
+    justEvaluated = true;
+  }
+
+  // ============================================================
+  // EVALUATOR — proper precedence with recursive descent
+  // ============================================================
+
+  // Normalize Unicode minus (U+2212) and the ×, ÷ glyphs to ASCII
+  // for the tokenizer (parseFloat expects ASCII '-').
+  function normalize(s) {
+    return s.replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/');
+  }
+
+  function tokenize(s) {
+    const out = [];
+    let i = 0;
+    while (i < s.length) {
+      const c = s[i];
+
+      if (c === ' ') { i++; continue; }
+
+      if (c === '+' || c === '-' || c === '*' || c === '/') {
+        out.push(c);
+        i++;
+        continue;
+      }
+
+      if ((c >= '0' && c <= '9') || c === '.') {
+        let j = i;
+        let hasDot = false;
+        while (j < s.length) {
+          const d = s[j];
+          if (d >= '0' && d <= '9') { j++; continue; }
+          if (d === '.' && !hasDot)  { hasDot = true; j++; continue; }
+          break;
+        }
+        const numStr = s.slice(i, j);
+        const num = parseFloat(numStr);
+        if (isNaN(num)) return null; // malformed number (e.g. lone ".")
+        out.push(num);
+        i = j;
+        continue;
+      }
+
+      // Unknown character — fail closed
+      return null;
+    }
+    return out;
+  }
+
+  function evaluate(s) {
+    const cleaned = normalize(s);
+
+    // Strip trailing operators / decimal points so "5+" evaluates to 5.
+    let c = cleaned;
+    while (c.length) {
+      const last = c[c.length - 1];
+      if (last === '+' || last === '-' || last === '*' || last === '/' || last === '.') {
+        c = c.slice(0, -1);
+      } else break;
+    }
+    if (c === '' || c === '-') return 0;
+
+    const tokens = tokenize(c);
+    if (!tokens || tokens.length === 0) return 0;
+
+    return shuntingYard(tokens);
+  }
+
+  // Recursive-descent: expr := term (('+'|'-') term)* ;  term := unary (('*'|'/') unary)*
+  function shuntingYard(tokens) {
+    let pos = 0;
+    const peek  = () => tokens[pos];
+    const eat   = () => tokens[pos++];
+
+    function parseExpr() {
+      let left = parseTerm();
+      while (pos < tokens.length && (peek() === '+' || peek() === '-')) {
+        const op = eat();
+        const right = parseTerm();
+        left = op === '+' ? left + right : left - right;
+      }
+      return left;
+    }
+
+    function parseTerm() {
+      let left = parseUnary();
+      while (pos < tokens.length && (peek() === '*' || peek() === '/')) {
+        const op = eat();
+        const right = parseUnary();
+        if (op === '/') {
+          if (right === 0) return null;          // divide by zero
+          left = left / right;
+        } else {
+          left = left * right;
+        }
+      }
+      return left;
+    }
+
+    function parseUnary() {
+      if (pos >= tokens.length) return NaN;
+      const t = peek();
+      if (t === '+') { eat(); return  parseUnary(); }
+      if (t === '-') { eat(); return -parseUnary(); }
+      if (typeof t === 'number') { eat(); return t; }
+      return NaN;
+    }
+
+    const result = parseExpr();
+    if (pos !== tokens.length) return null;       // leftover tokens = bad expression
+    return result;
+  }
+
+  // ============================================================
+  // HISTORY
+  // ============================================================
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+
+  function addHistory(exprStr, resultStr) {
+    history.push({ e: exprStr, r: resultStr });
+    if (history.length > 8) history.shift();
+    el.tape.innerHTML = history.map((h) =>
+      `<div class="tape-row"><span class="expr">${escapeHTML(h.e)} =</span><span class="eq">${escapeHTML(h.r)}</span></div>`
+    ).join('');
+    el.tape.scrollTop = el.tape.scrollHeight;
+  }
+
+  // ============================================================
+  // INPUT WIRING
+  // ============================================================
+
+  // Click handler — delegation on the keypad
+  el.pad.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn');
+    if (!btn) return;
+    const a = btn.dataset.action;
+    switch (a) {
+      case 'digit':    inputDigit(btn.dataset.digit); break;
+      case 'dot':      inputDot(); break;
+      case 'op':       inputOp(btn.dataset.op); break;
+      case 'eq':       inputEquals(); break;
+      case 'clear':    clearAll(); break;
+      case 'delete':   inputDelete(); break;
+      case 'negate':   inputNegate(); break;
+      case 'percent':  inputPercent(); break;
+    }
+  });
+
+  // Keyboard handler
+  const KEY_MAP = {
+    '0': 'd:0', '1': 'd:1', '2': 'd:2', '3': 'd:3', '4': 'd:4',
+    '5': 'd:5', '6': 'd:6', '7': 'd:7', '8': 'd:8', '9': 'd:9',
+    '.': 'dot',
+    '+': 'op:+',
+    '-': 'op:−',
+    '*': 'op:×',
+    '/': 'op:÷',
+    'Enter': 'eq',
+    '=': 'eq',
+    'Escape': 'clear',
+    'Delete': 'clear',
+    'Backspace': 'del',
+  };
+
+  document.addEventListener('keydown', (e) => {
+    // Ignore key events in form fields (none here, but defensive)
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return;
+
+    // Allow modifier-combos to pass through (e.g. Ctrl+R)
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    const m = KEY_MAP[e.key];
+    if (!m) return;
+
+    e.preventDefault();
+    if (m === 'clear') clearAll();
+    else if (m === 'del') inputDelete();
+    else if (m === 'eq') inputEquals();
+    else if (m === 'dot') inputDot();
+    else if (m.startsWith('d:')) inputDigit(m.slice(2));
+    else if (m.startsWith('op:')) inputOp(m.slice(3));
+  });
+
+  // ============================================================
+  // THEME — persisted, prefers-color-scheme aware
+  // ============================================================
+  (function initTheme() {
+    const stored = localStorage.getItem('calc-theme');
+    if (stored === 'light' || stored === 'dark') {
+      el.body.dataset.theme = stored;
+    } else {
+      el.body.dataset.theme =
+        window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+  })();
+
+  el.themeBtn.addEventListener('click', () => {
+    const next = el.body.dataset.theme === 'dark' ? 'light' : 'dark';
+    el.body.dataset.theme = next;
+    localStorage.setItem('calc-theme', next);
+  });
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  clearAll();
+})();
+</script>
+</body>
+</html>
