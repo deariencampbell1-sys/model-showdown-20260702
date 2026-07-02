@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+<style>
+/* ===== CSS Custom Properties — Dark Theme Palette ===== */
+:root {
+  --bg-primary: #0f0f1a;
+  --bg-secondary: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-display: #0a0a14;
+  --bg-btn-number: #1e2a3a;
+  --bg-btn-number-hover: #2a3a50;
+  --bg-btn-operator: #e94560;
+  --bg-btn-operator-hover: #ff6b81;
+  --bg-btn-action: #2d3a4a;
+  --bg-btn-action-hover: #3d4f64;
+  --bg-btn-equals: #0f3460;
+  --bg-btn-equals-hover: #1650a0;
+  --text-primary: #eaeaea;
+  --text-secondary: #a0a8b4;
+  --text-display: #ffffff;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-btn: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --radius-card: 20px;
+  --radius-btn: 14px;
+  --radius-display: 14px;
+  --transition-fast: 120ms ease;
+  --transition-medium: 200ms ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(233, 69, 96, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(15, 52, 96, 0.15) 0%, transparent 50%);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 16px;
+}
+
+/* ===== Calculator Card ===== */
+.calculator {
+  width: 100%;
+  min-width: 320px;
+  max-width: 400px;
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: transform var(--transition-medium);
+}
+
+/* ===== Display ===== */
+.display-container {
+  position: relative;
+}
+
+.display {
+  background: var(--bg-display);
+  border-radius: var(--radius-display);
+  padding: 20px 24px;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  position: relative;
+}
+
+.display-expression {
+  font-size: 14px;
+  color: var(--text-secondary);
+  min-height: 20px;
+  word-break: break-all;
+  text-align: right;
+  width: 100%;
+  line-height: 1.3;
+  transition: opacity var(--transition-fast);
+}
+
+.display-value {
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--text-display);
+  letter-spacing: -0.5px;
+  word-break: break-all;
+  text-align: right;
+  width: 100%;
+  line-height: 1.1;
+  transition: font-size var(--transition-fast);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.display-value.overflow {
+  font-size: 28px;
+}
+
+/* Glow edge on display */
+.display::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(233, 69, 96, 0.3), transparent);
+  border-radius: var(--radius-display) var(--radius-display) 0 0;
+}
+
+/* ===== Button Grid ===== */
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.btn {
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 16px 8px;
+  font-size: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-btn);
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+  color: var(--text-primary);
+}
+
+.btn:active {
+  transform: scale(0.94);
+}
+
+/* Ripple effect */
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.btn:active::after {
+  opacity: 1;
+}
+
+/* Number buttons */
+.btn-number {
+  background: var(--bg-btn-number);
+}
+.btn-number:hover {
+  background: var(--bg-btn-number-hover);
+}
+
+/* Operator buttons */
+.btn-operator {
+  background: var(--bg-btn-operator);
+  color: #fff;
+  font-weight: 700;
+  font-size: 22px;
+}
+.btn-operator:hover {
+  background: var(--bg-btn-operator-hover);
+}
+
+/* Action buttons (C, ⌫) */
+.btn-action {
+  background: var(--bg-btn-action);
+  color: var(--text-secondary);
+  font-size: 18px;
+}
+.btn-action:hover {
+  background: var(--bg-btn-action-hover);
+  color: #fff;
+}
+
+/* Equals button */
+.btn-equals {
+  background: var(--bg-btn-equals);
+  color: #fff;
+  font-weight: 700;
+  font-size: 22px;
+}
+.btn-equals:hover {
+  background: var(--bg-btn-equals-hover);
+}
+
+/* Active state for operators (shows which operator is pending) */
+.btn-operator.active {
+  background: #ff9a3c;
+  box-shadow: 0 0 12px rgba(255, 154, 60, 0.4);
+}
+
+/* ===== History Tape ===== */
+.history {
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.history::-webkit-scrollbar {
+  width: 4px;
+}
+.history::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+
+.history-entry {
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  transition: background var(--transition-fast);
+  cursor: pointer;
+}
+.history-entry:hover {
+  background: rgba(255,255,255,0.04);
+}
+.history-entry .h-expr {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+.history-entry .h-result {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-left: 12px;
+}
+
+.history-empty {
+  text-align: center;
+  opacity: 0.3;
+  font-style: italic;
+  padding: 4px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 360px) {
+  .calculator {
+    padding: 16px;
+    gap: 14px;
+  }
+  .btn-grid {
+    gap: 7px;
+  }
+  .btn {
+    padding: 14px 4px;
+    font-size: 18px;
+  }
+  .display-value {
+    font-size: 32px;
+  }
+}
+
+/* Subtle entrance animation */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.calculator {
+  animation: slideUp 0.35s ease-out;
+}
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <div class="display-container">
+    <div class="display">
+      <div class="display-expression" id="expression" aria-live="polite">&nbsp;</div>
+      <div class="display-value" id="display" aria-live="polite">0</div>
+    </div>
+  </div>
+
+  <div class="btn-grid">
+    <!-- Row 1: Clear, Delete, ÷, × -->
+    <button class="btn btn-action" data-key="clear" aria-label="Clear">C</button>
+    <button class="btn btn-action" data-key="backspace" aria-label="Delete">⌫</button>
+    <button class="btn btn-operator" data-key="/" aria-label="Divide">÷</button>
+    <button class="btn btn-operator" data-key="*" aria-label="Multiply">×</button>
+
+    <!-- Row 2: 7, 8, 9, − -->
+    <button class="btn btn-number" data-key="7">7</button>
+    <button class="btn btn-number" data-key="8">8</button>
+    <button class="btn btn-number" data-key="9">9</button>
+    <button class="btn btn-operator" data-key="-" aria-label="Subtract">−</button>
+
+    <!-- Row 3: 4, 5, 6, + -->
+    <button class="btn btn-number" data-key="4">4</button>
+    <button class="btn btn-number" data-key="5">5</button>
+    <button class="btn btn-number" data-key="6">6</button>
+    <button class="btn btn-operator" data-key="+" aria-label="Add">+</button>
+
+    <!-- Row 4: 1, 2, 3, = -->
+    <button class="btn btn-number" data-key="1">1</button>
+    <button class="btn btn-number" data-key="2">2</button>
+    <button class="btn btn-number" data-key="3">3</button>
+    <button class="btn btn-equals" data-key="=" aria-label="Equals">=</button>
+
+    <!-- Row 5: 0 (span 2), ., = (hidden on mobile we repeat) -->
+    <button class="btn btn-number" data-key="0" style="grid-column: span 2;">0</button>
+    <button class="btn btn-number" data-key="." aria-label="Decimal">.</button>
+    <button class="btn btn-operator" data-key="negate" aria-label="Negate">±</button>
+  </div>
+
+  <!-- History tape (bonus) -->
+  <div class="history" id="history" aria-label="Calculation history">
+    <div class="history-empty">No history yet</div>
+  </div>
+</div>
+
+<script>
+/* ==================================================================
+   Calculator — GLM Entry for Model Showdown 2026-07-02
+   Zero dependencies. Single-file. Dark theme. Responsive.
+   ================================================================== */
+
+(function () {
+  'use strict';
+
+  // ---- DOM references ----
+  const displayEl = document.getElementById('display');
+  const expressionEl = document.getElementById('expression');
+  const historyEl = document.getElementById('history');
+  const operatorBtns = document.querySelectorAll('.btn-operator');
+
+  // ---- State ----
+  let state = {
+    currentInput: '',       // what the user is currently typing
+    tokens: [],             // full expression as [num, op, num, op, ...]
+    lastResult: null,       // result from most recent = press
+    justEvaluated: false,   // true after =, false after new input
+    error: false            // true when we hit an error state
+  };
+
+  const history = [];       // [{expr, result}]
+  const MAX_DIGITS = 10;
+
+  // ---- Display helpers ----
+  function formatNumber(num) {
+    // ParseFloat to clean up, then check length
+    if (typeof num === 'number') {
+      // Handle very large / very small
+      if (!isFinite(num)) return 'Error';
+      // Convert to string and check length
+      let str = num.toPrecision(12); // get 12 significant digits
+      let parsed = parseFloat(str);
+      if (!isFinite(parsed)) return 'Error';
+
+      // Trim to fit display
+      let s = parsed.toString();
+      if (s.length > MAX_DIGITS + 2) { // allow some room for sign/dec
+        // Use exponential for overflow
+        let exp = parsed.toExponential(8);
+        if (exp.length <= MAX_DIGITS + 2) return exp;
+        return 'Error';
+      }
+      // If still too long, try toFixed
+      if (s.replace('-', '').replace('.', '').length > MAX_DIGITS) {
+        s = parseFloat(parsed.toPrecision(MAX_DIGITS)).toString();
+      }
+      if (s.replace('-', '').replace('.', '').length > MAX_DIGITS) {
+        return 'Error';
+      }
+      return s;
+    }
+    return String(num);
+  }
+
+  function lastNumberInTokens() {
+    for (let i = state.tokens.length - 1; i >= 0; i--) {
+      if (typeof state.tokens[i] === 'number') return state.tokens[i];
+    }
+    return null;
+  }
+
+  function updateDisplay() {
+    let displayed = '0';
+
+    if (state.error) {
+      displayed = 'Error';
+      expressionEl.textContent = '\u00A0';
+    } else if (state.currentInput !== '') {
+      displayed = state.currentInput;
+    } else if (state.lastResult !== null) {
+      displayed = formatNumber(state.lastResult);
+    } else {
+      let lastNum = lastNumberInTokens();
+      if (lastNum !== null) {
+        displayed = formatNumber(lastNum);
+      }
+    }
+
+    displayEl.textContent = displayed;
+
+    // Shrink font for long numbers
+    if (displayed.replace('-', '').replace('.', '').length > 8) {
+      displayEl.classList.add('overflow');
+    } else {
+      displayEl.classList.remove('overflow');
+    }
+
+    // Show expression tape
+    let exprStr = tokensToDisplayString();
+    expressionEl.textContent = exprStr || '\u00A0';
+  }
+
+  function tokensToDisplayString() {
+    if (state.tokens.length === 0) return '';
+    return state.tokens.map(t => {
+      if (typeof t === 'number') return formatNumber(t);
+      if (t === '*') return '×';
+      if (t === '/') return '÷';
+      if (t === 'negate') return ''; // don't show in expression
+      return t;
+    }).join(' ');
+  }
+
+  // ---- History ----
+  function addHistory(expr, result) {
+    history.push({ expr, result });
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (history.length === 0) {
+      historyEl.innerHTML = '<div class="history-empty">No history yet</div>';
+      return;
+    }
+    let html = '';
+    // Show last 5, most recent first
+    let recent = history.slice(-5).reverse();
+    for (let h of recent) {
+      html += `<div class="history-entry" title="Click to recall">
+        <span class="h-expr">${escapeHtml(h.expr)}</span>
+        <span class="h-result">${escapeHtml(h.result)}</span>
+      </div>`;
+    }
+    historyEl.innerHTML = html;
+
+    // Click to recall last result
+    historyEl.querySelectorAll('.history-entry').forEach((el, i) => {
+      el.addEventListener('click', () => {
+        let entry = recent[i];
+        recallResult(entry.result);
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    let div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function recallResult(resultStr) {
+    // Set as current input
+    state.currentInput = resultStr;
+    state.tokens = [];
+    state.lastResult = null;
+    state.justEvaluated = false;
+    state.error = false;
+    updateDisplay();
+    updateActiveOperator();
+  }
+
+  // ---- Operator active indicator ----
+  function updateActiveOperator() {
+    operatorBtns.forEach(btn => {
+      btn.classList.remove('active');
+    });
+    if (state.tokens.length > 0 && state.currentInput === '' && !state.error) {
+      let last = state.tokens[state.tokens.length - 1];
+      if (typeof last === 'string' && ['+', '-', '*', '/'].includes(last)) {
+        let opMap = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+        let displayOp = opMap[last];
+        operatorBtns.forEach(btn => {
+          if (btn.textContent.trim() === displayOp) {
+            btn.classList.add('active');
+          }
+        });
+      }
+    }
+  }
+
+  // ---- Core operations ----
+  function clearAll() {
+    state.currentInput = '';
+    state.tokens = [];
+    state.lastResult = null;
+    state.justEvaluated = false;
+    state.error = false;
+    updateDisplay();
+    updateActiveOperator();
+  }
+
+  function deleteLast() {
+    if (state.error) {
+      clearAll();
+      return;
+    }
+    if (state.currentInput.length > 0) {
+      state.currentInput = state.currentInput.slice(0, -1);
+      state.justEvaluated = false;
+    }
+    updateDisplay();
+  }
+
+  function inputDigit(digit) {
+    if (state.error) {
+      // Error state: clear and start fresh
+      clearAll();
+    }
+    if (state.justEvaluated) {
+      // After =, start a new expression
+      state.currentInput = '';
+      state.tokens = [];
+      state.lastResult = null;
+      state.justEvaluated = false;
+    }
+
+    // Leading zero prevention
+    if (state.currentInput === '0' && digit !== '.') {
+      state.currentInput = digit;
+    } else if (state.currentInput === '-0' && digit !== '.') {
+      state.currentInput = '-' + digit;
+    } else {
+      // Limit digits
+      let digitsOnly = state.currentInput.replace('-', '').replace('.', '');
+      if (digitsOnly.length >= MAX_DIGITS) return;
+      state.currentInput += digit;
+    }
+    updateDisplay();
+  }
+
+  function inputDecimal() {
+    if (state.error) {
+      clearAll();
+    }
+    if (state.justEvaluated) {
+      state.currentInput = '0';
+      state.tokens = [];
+      state.lastResult = null;
+      state.justEvaluated = false;
+    }
+    if (state.currentInput === '') {
+      state.currentInput = '0';
+    }
+    if (state.currentInput.includes('.')) return; // already has decimal
+    state.currentInput += '.';
+    updateDisplay();
+  }
+
+  function toggleNegate() {
+    if (state.error) {
+      clearAll();
+      return;
+    }
+    if (state.justEvaluated && state.lastResult !== null) {
+      // Negate the result
+      state.lastResult = -state.lastResult;
+      state.currentInput = formatNumber(state.lastResult);
+      state.tokens = [state.lastResult];
+      state.justEvaluated = false;
+      updateDisplay();
+      return;
+    }
+    if (state.currentInput !== '') {
+      if (state.currentInput.startsWith('-')) {
+        state.currentInput = state.currentInput.slice(1);
+      } else {
+        state.currentInput = '-' + state.currentInput;
+      }
+    } else if (state.tokens.length > 0) {
+      let last = state.tokens[state.tokens.length - 1];
+      if (typeof last === 'number') {
+        state.tokens[state.tokens.length - 1] = -last;
+        state.currentInput = formatNumber(-last);
+      }
+    }
+    state.justEvaluated = false;
+    updateDisplay();
+  }
+
+  function inputOperator(op) {
+    if (state.error) {
+      // Error: start fresh with last result or 0
+      clearAll();
+      if (state.lastResult !== null) {
+        state.tokens = [state.lastResult];
+      } else {
+        state.tokens = [0];
+      }
+    }
+
+    if (state.justEvaluated && state.lastResult !== null) {
+      // Chaining: start from last result
+      state.tokens = [state.lastResult];
+      state.lastResult = null;
+      state.justEvaluated = false;
+    }
+
+    // If there's current input, push it as a number
+    if (state.currentInput !== '') {
+      let num = parseFloat(state.currentInput);
+      if (isNaN(num)) {
+        // Invalid input, ignore
+        return;
+      }
+      state.tokens.push(num);
+      state.currentInput = '';
+    }
+
+    // If no tokens yet, use 0 as first operand
+    if (state.tokens.length === 0) {
+      state.tokens.push(0);
+    }
+
+    // Replace last operator if it's an operator (operator after operator)
+    let last = state.tokens[state.tokens.length - 1];
+    if (typeof last === 'string' && ['+', '-', '*', '/'].includes(last)) {
+      state.tokens[state.tokens.length - 1] = op;
+    } else {
+      state.tokens.push(op);
+    }
+
+    state.lastResult = null;
+    state.justEvaluated = false;
+    updateDisplay();
+    updateActiveOperator();
+  }
+
+  function evaluate() {
+    if (state.error) {
+      clearAll();
+      return;
+    }
+
+    // Push current input as final token if any
+    if (state.currentInput !== '') {
+      let num = parseFloat(state.currentInput);
+      if (isNaN(num)) {
+        clearAll();
+        updateDisplay();
+        return;
+      }
+      state.tokens.push(num);
+      state.currentInput = '';
+    }
+
+    if (state.tokens.length === 0) {
+      state.lastResult = 0;
+      state.justEvaluated = true;
+      updateDisplay();
+      return;
+    }
+
+    // If last token is an operator, remove it (e.g., "5+" becomes just "5")
+    let last = state.tokens[state.tokens.length - 1];
+    if (typeof last === 'string' && ['+', '-', '*', '/'].includes(last)) {
+      state.tokens.pop();
+    }
+
+    if (state.tokens.length === 1 && typeof state.tokens[0] === 'number') {
+      // Single number: just return it
+      state.lastResult = state.tokens[0];
+      let exprStr = formatNumber(state.lastResult);
+      addHistory(exprStr, formatNumber(state.lastResult));
+      state.justEvaluated = true;
+      updateDisplay();
+      updateActiveOperator();
+      return;
+    }
+
+    // Evaluate with operator precedence (* and / before + and -)
+    let result = evaluateWithPrecedence(state.tokens);
+    let exprStr = tokensToDisplayString() + ' =';
+
+    if (result === null || !isFinite(result)) {
+      // Division by zero or overflow
+      addHistory(exprStr, 'Error');
+      state.error = true;
+      state.currentInput = '';
+      state.tokens = [];
+      state.lastResult = null;
+      state.justEvaluated = false;
+      updateDisplay();
+      updateActiveOperator();
+      return;
+    }
+
+    let formatted = formatNumber(result);
+    if (formatted === 'Error') {
+      addHistory(exprStr, 'Error');
+      state.error = true;
+      state.currentInput = '';
+      state.tokens = [];
+      state.lastResult = null;
+      state.justEvaluated = false;
+      updateDisplay();
+      updateActiveOperator();
+      return;
+    }
+
+    addHistory(exprStr, formatted);
+    state.lastResult = result;
+    state.tokens = [result];
+    state.justEvaluated = true;
+    updateDisplay();
+    updateActiveOperator();
+  }
+
+  /**
+   * Evaluate token list with correct operator precedence.
+   * Pass 1: resolve *, /  (left to right)
+   * Pass 2: resolve +, -  (left to right)
+   */
+  function evaluateWithPrecedence(tokens) {
+    // Clone tokens
+    let t = tokens.slice();
+
+    // First pass: multiply and divide (left to right)
+    let i = 1;
+    while (i < t.length - 1) {
+      if (t[i] === '*' || t[i] === '/') {
+        let left = t[i - 1];
+        let right = t[i + 1];
+        if (typeof left !== 'number' || typeof right !== 'number') return null;
+
+        let val;
+        if (t[i] === '*') {
+          val = left * right;
+        } else {
+          if (right === 0) return null; // division by zero
+          val = left / right;
+        }
+
+        if (!isFinite(val)) return null;
+
+        // Replace [left, op, right] with [val]
+        t.splice(i - 1, 3, val);
+        // i stays at same position to check next operator with new left operand
+      } else {
+        i += 2;
+      }
+    }
+
+    // Second pass: add and subtract (left to right)
+    let result = t[0];
+    if (typeof result !== 'number') return null;
+
+    for (let j = 1; j < t.length; j += 2) {
+      let op = t[j];
+      let right = t[j + 1];
+      if (typeof right !== 'number') return null;
+
+      if (op === '+') {
+        result = result + right;
+      } else if (op === '-') {
+        result = result - right;
+      }
+
+      if (!isFinite(result)) return null;
+    }
+
+    return result;
+  }
+
+  // ---- Keyboard support ----
+  function handleKeyboard(e) {
+    // Prevent default for calculator keys when not in an input field
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    let key = e.key;
+
+    // Map keyboard operators
+    if (key === 'Enter' || key === '=') {
+      e.preventDefault();
+      evaluate();
+      return;
+    }
+    if (key === 'Escape') {
+      e.preventDefault();
+      clearAll();
+      return;
+    }
+    if (key === 'Backspace') {
+      e.preventDefault();
+      deleteLast();
+      return;
+    }
+    if (/^[0-9]$/.test(key)) {
+      e.preventDefault();
+      inputDigit(parseInt(key, 10));
+      return;
+    }
+    if (key === '.') {
+      e.preventDefault();
+      inputDecimal();
+      return;
+    }
+    if (key === '+') {
+      e.preventDefault();
+      inputOperator('+');
+      return;
+    }
+    if (key === '-') {
+      e.preventDefault();
+      inputOperator('-');
+      return;
+    }
+    if (key === '*') {
+      e.preventDefault();
+      inputOperator('*');
+      return;
+    }
+    if (key === '/') {
+      e.preventDefault();
+      inputOperator('/');
+      return;
+    }
+    if (key === 'x' || key === 'X') {
+      e.preventDefault();
+      inputOperator('*');
+      return;
+    }
+  }
+
+  // ---- Button click handlers ----
+  function handleButtonClick(e) {
+    let btn = e.currentTarget;
+    let key = btn.getAttribute('data-key');
+
+    if (!key) return;
+
+    switch (key) {
+      case 'clear':
+        clearAll();
+        break;
+      case 'backspace':
+        deleteLast();
+        break;
+      case '=':
+        evaluate();
+        break;
+      case 'negate':
+        toggleNegate();
+        break;
+      case '+':
+      case '-':
+      case '*':
+      case '/':
+        inputOperator(key);
+        break;
+      case '.':
+        inputDecimal();
+        break;
+      default:
+        // Must be a digit
+        if (/^[0-9]$/.test(key)) {
+          inputDigit(parseInt(key, 10));
+        }
+    }
+  }
+
+  // ---- Bind events ----
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', handleButtonClick);
+  });
+  document.addEventListener('keydown', handleKeyboard);
+
+  // ---- Init ----
+  updateDisplay();
+
+})();
+</script>
+</body>
+</html>
